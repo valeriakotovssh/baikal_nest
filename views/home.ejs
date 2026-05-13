@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main>
+    <section class="hero">
+      <div class="hero__content">
+        <span>Главная</span>
+        <h1>Отдых на Байкале начинается здесь</h1>
+        <p>Отдохните от города в тишине природы. Современные домики у самого берега Байкала.</p>
+        <a class="primary-button" href="/catalog">Выбрать домик</a>
+      </div>
+      <div class="hero-widget">
+        <b>Популярные варианты</b>
+        <% houses.slice(0, 2).forEach((house) => { %>
+          <a href="/houses/<%= house.slug %>"><%= house.title %></a>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="section houses-showcase">
+      <div class="section-head">
+        <h2>Выберите домик для отдыха</h2>
+        <a class="dark-pill" href="/catalog">Смотреть все</a>
+      </div>
+      <div class="slider" data-slider>
+        <div class="slider-track">
+          <% houses.forEach((house) => { %>
+            <%- include('partials/house-card', { house }) %>
+          <% }) %>
+        </div>
+        <div class="slider-controls">
+          <button type="button" data-prev>←</button>
+          <button type="button" data-next>→</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="benefits">
+      <div>
+        <h2>Почему гости возвращаются к нам</h2>
+        <div class="benefit-grid">
+          <div><b>Уединение и тишина</b><p>Домики расположены вдали от шума и туристических зон.</p></div>
+          <div><b>Современные домики</b><p>Панорамные окна, тепло и комфорт в любое время года.</p></div>
+          <div><b>Рядом с Байкалом</b><p>До берега можно дойти пешком за несколько минут.</p></div>
+          <div><b>Уютная атмосфера</b><p>Каждый домик продуман для спокойного отдыха.</p></div>
+        </div>
+      </div>
+      <img src="/img/preferences.png" alt="Уютный домик в лесу">
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Что говорят гости</h2>
+        <a class="primary-button small" href="/reviews#review-form">Оставить отзыв</a>
+      </div>
+      <div class="reviews-row">
+        <% reviews.forEach((review) => { %>
+          <article class="review-card">
+            <p><%= review.text %></p>
+            <div class="stars">★★★★★</div>
+            <b><%= review.author %><%= review.city ? ', ' + review.city : '' %></b>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Выберите домик и проведите время вдали от города</h2>
+      <p>Подарите себе тишину, природу и комфорт.</p>
+      <div>
+        <a class="primary-button" href="/catalog">Смотреть домики</a>
+        <a class="light-button" href="#contact">Связаться с нами</a>
+      </div>
+    </section>
+
+    <%- include('partials/contact-form', { source: 'home' }) %>
+    <%- include('partials/map') %>
+  </main>
+  <%- include('partials/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

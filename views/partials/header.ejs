@@ -1,0 +1,28 @@
+<header class="<%= admin ? 'site-header site-header_admin' : 'site-header' %>">
+  <a class="logo" href="/">Baikal Nest</a>
+  <% if (admin) { %>
+    <div class="admin-user">
+      <div>
+        <strong><%= currentUser ? currentUser.name : 'Дмитрий В.' %></strong>
+        <span><%= currentUser && currentUser.role === 'admin' ? 'Администратор' : 'Гость' %></span>
+      </div>
+      <div class="avatar">ДВ</div>
+      <a class="logout-link" href="/logout"><span class="icon"><%- include('icons', { name: 'logout' }) %></span>Выйти</a>
+    </div>
+  <% } else { %>
+    <nav class="main-nav">
+      <a href="/">Главная</a>
+      <a href="/catalog">Домики</a>
+      <a href="/restaurant">Ресторан</a>
+      <a href="/reviews">Отзывы</a>
+      <a href="/about">О нас</a>
+      <a href="/contacts">Контакты</a>
+    </nav>
+    <div class="header-actions">
+      <a class="round-link" href="tel:+79991234567" aria-label="Позвонить"><%- include('icons', { name: 'phone' }) %></a>
+      <a class="round-link" href="https://t.me/" aria-label="Telegram"><%- include('icons', { name: 'telegram' }) %></a>
+      <a class="round-link" href="https://instagram.com/" aria-label="Instagram"><%- include('icons', { name: 'instagram' }) %></a>
+      <a class="login-button" href="<%= currentUser ? '/account' : '/login' %>"><%= currentUser ? 'Кабинет' : 'Войти' %></a>
+    </div>
+  <% } %>
+</header>

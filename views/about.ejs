@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main>
+    <section class="about-hero page">
+      <div>
+        <div class="breadcrumbs">Главная / О нас</div>
+        <span class="eyebrow">О нас</span>
+        <h1>Отдых в уютных домиках на Байкале</h1>
+        <p>Мы создаем пространство для спокойного и комфортного отдыха среди природы Байкала. Уютные домики, чистый воздух, тишина и виды на озеро помогают отвлечься от городской суеты.</p>
+      </div>
+      <img src="/img/about-us-first.png" alt="Домики на Байкале">
+    </section>
+    <section class="info-cards">
+      <article><h3>Работаем с 2019 года</h3><p>Уже несколько лет принимаем гостей и создаем комфортный отдых.</p></article>
+      <article><h3>Гости со всего мира</h3><p>К нам приезжают путешественники из разных городов России.</p></article>
+      <article><h3>Комфорт и природа</h3><p>Красивые виды, свежий воздух и все необходимое для спокойного отдыха.</p></article>
+    </section>
+    <section class="benefits about">
+      <img src="/img/about-us-second.png" alt="Интерьер домика">
+      <div>
+        <span class="eyebrow">Забота о каждом госте</span>
+        <h2>Мы продумали все для вашего отдыха</h2>
+        <p>Будь вы вдвоем, с семьей или с питомцем, все продумано так, чтобы вы чувствовали себя как дома.</p>
+        <ul class="check-list">
+          <li><%- include('partials/icons', { name: 'check' }) %>Комфорт для семей с детьми</li>
+          <li><%- include('partials/icons', { name: 'check' }) %>Можно с питомцами</li>
+          <li><%- include('partials/icons', { name: 'check' }) %>Все необходимое для отдыха</li>
+          <li><%- include('partials/icons', { name: 'check' }) %>Всегда поможем и пойдем навстречу</li>
+        </ul>
+      </div>
+    </section>
+    <%- include('partials/contact-form', { source: 'about' }) %>
+    <%- include('partials/map') %>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

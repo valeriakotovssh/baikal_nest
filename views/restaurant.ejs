@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main class="page">
+    <div class="breadcrumbs">Главная / Ресторан</div>
+    <section class="restaurant-hero">
+      <div>
+        <span class="eyebrow">Ресторан</span>
+        <h1>Забронируйте столик после прогулки у Байкала</h1>
+        <p class="muted">Гости, проживающие в наших домиках, получают скидку 10% на ужин в ресторане Baikal Nest.</p>
+        <div class="info-cards restaurant-cards">
+          <article><h3>Бронь столиков</h3><p>Выберите дату, время и количество гостей.</p></article>
+          <article><h3>Скидка для гостей</h3><p>Отметьте проживание в домике и получите скидку.</p></article>
+        </div>
+      </div>
+      <form class="soft-form" action="/restaurant/bookings" method="post">
+        <label>Имя<input name="guest_name" value="<%= currentUser ? currentUser.name : '' %>" required></label>
+        <label>Телефон<input name="phone" value="<%= currentUser ? currentUser.phone : '' %>" required></label>
+        <div class="two-fields">
+          <label>Дата<input type="date" name="booking_date" required></label>
+          <label>Время<input type="time" name="booking_time" required></label>
+        </div>
+        <label>Гости<input type="number" min="1" max="12" name="guests" value="2" required></label>
+        <label class="checkbox-line"><input type="checkbox" name="hotel_guest"> Я проживаю в домике Baikal Nest</label>
+        <label>Комментарий<textarea name="comment" placeholder="Особые пожелания"></textarea></label>
+        <button class="primary-button" type="submit">Забронировать столик</button>
+      </form>
+    </section>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

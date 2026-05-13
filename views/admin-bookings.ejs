@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="admin-page">
+    <nav class="admin-nav"><a href="/admin">Дашборд</a><a href="/admin/bookings">Бронирования</a><a href="/admin/restaurant">Ресторан</a><a href="/admin/reviews">Отзывы</a><a href="/admin/calendar">Календарь</a></nav>
+    <h1>Бронирования</h1>
+    <%- include('partials/admin-bookings-table', { bookings, formatDate, statusLabel }) %>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

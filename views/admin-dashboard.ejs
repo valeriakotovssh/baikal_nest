@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="admin-page">
+    <nav class="admin-nav"><a href="/admin">Дашборд</a><a href="/admin/bookings">Бронирования</a><a href="/admin/restaurant">Ресторан</a><a href="/admin/reviews">Отзывы</a><a href="/admin/calendar">Календарь</a></nav>
+    <section class="stat-grid">
+      <article><span><%- include('partials/icons', { name: 'home' }) %></span><p>Домики</p><b><%= stats.houses %></b></article>
+      <article><span><%- include('partials/icons', { name: 'booking' }) %></span><p>Бронирования</p><b><%= stats.bookings %></b></article>
+      <article><span><%- include('partials/icons', { name: 'star' }) %></span><p>Отзывы</p><b><%= stats.reviews %></b></article>
+      <article><span><%- include('partials/icons', { name: 'user' }) %></span><p>Пользователи</p><b><%= stats.users %></b></article>
+    </section>
+    <div class="admin-section-head"><h2>Последние бронирования</h2><a href="/admin/bookings">Смотреть все</a></div>
+    <%- include('partials/admin-bookings-table', { bookings: recentBookings, formatDate, statusLabel }) %>
+    <div class="admin-section-head"><h2>Отзывы на модерации</h2><a href="/admin/reviews">Смотреть все</a></div>
+    <div class="moderation-grid">
+      <% pendingReviews.forEach((review) => { %>
+        <article class="moderation-card">
+          <b><%= review.author %></b>
+          <div class="stars">★★★★★</div>
+          <p>"<%= review.text %>"</p>
+          <form class="button-row" action="/admin/reviews/<%= review.id %>/status" method="post">
+            <button class="outline-button" name="status" value="rejected">Отклонить</button>
+            <button class="dark-button" name="status" value="approved">Одобрить</button>
+          </form>
+        </article>
+      <% }) %>
+    </div>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

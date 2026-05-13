@@ -1,0 +1,11 @@
+<article class="house-card">
+  <img src="<%= house.image %>" alt="<%= house.image_alt %>">
+  <div class="house-card__body">
+    <div class="house-card__top">
+      <h3><%= house.title %></h3>
+      <b>от <%= house.price.toLocaleString('ru-RU') %> ₽</b>
+    </div>
+    <p><%= house.capacity_min %>-<%= house.capacity_max %> гостя · <%= house.subtitle %></p>
+    <a class="outline-button" href="/houses/<%= house.slug %>">Подробнее</a>
+  </div>
+</article>

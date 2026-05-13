@@ -1,0 +1,19 @@
+<section class="contact-section" id="contact">
+  <div class="contact-copy">
+    <span class="eyebrow">Контакты</span>
+    <h2>Свяжитесь с нами</h2>
+    <p>Напишите нам, если хотите узнать больше о домиках или забронировать отдых. Мы всегда на связи и с радостью поможем вам выбрать лучший вариант.</p>
+    <div class="contact-list">
+      <div><b>Телефон</b><span>+7 999 123-45-67</span></div>
+      <div><b>Почта</b><span>hello@baikall.ru</span></div>
+      <div><b>Адрес</b><span>Ольхонский район, п. Хужир, ул. Лесная, 7</span></div>
+    </div>
+  </div>
+  <form class="soft-form" action="/contact" method="post">
+    <input type="hidden" name="source" value="<%= typeof source !== 'undefined' ? source : 'contact' %>">
+    <label>Имя<input name="name" placeholder="Введите свое имя" required></label>
+    <label>Телефон<input name="phone" placeholder="+7 (000) 123-45-67" required></label>
+    <label>Ваше сообщение<textarea name="message" placeholder="Введите ваш вопрос" required></textarea></label>
+    <button class="primary-button" type="submit">Отправить</button>
+  </form>
+</section>

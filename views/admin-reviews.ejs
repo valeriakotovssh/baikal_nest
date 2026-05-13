@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="admin-page">
+    <nav class="admin-nav"><a href="/admin">Дашборд</a><a href="/admin/bookings">Бронирования</a><a href="/admin/restaurant">Ресторан</a><a href="/admin/reviews">Отзывы</a><a href="/admin/calendar">Календарь</a></nav>
+    <h1>Отзывы на модерации</h1>
+    <div class="review-list">
+      <% reviews.forEach((review) => { %>
+        <article>
+          <div><b><%= review.author %></b><div class="stars">★★★★★</div></div>
+          <p>"<%= review.text %>"</p>
+          <form class="button-row" action="/admin/reviews/<%= review.id %>/status" method="post">
+            <button class="outline-button" name="status" value="rejected">Отклонить</button>
+            <button class="dark-button" name="status" value="approved">Одобрить</button>
+          </form>
+        </article>
+      <% }) %>
+    </div>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

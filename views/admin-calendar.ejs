@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="admin-page">
+    <nav class="admin-nav"><a href="/admin">Дашборд</a><a href="/admin/bookings">Бронирования</a><a href="/admin/restaurant">Ресторан</a><a href="/admin/reviews">Отзывы</a><a href="/admin/calendar">Календарь</a></nav>
+    <div class="calendar-toolbar">
+      <div class="month-switch">
+        <a href="/admin/calendar?month=<%= prevMonth %>">‹</a>
+        <strong><%= monthTitle %></strong>
+        <a href="/admin/calendar?month=<%= nextMonth %>">›</a>
+      </div>
+      <div class="legend"><span></span> Доступно <b></b> Занято</div>
+      <a class="dark-button" href="/catalog">+ Новое бронирование</a>
+    </div>
+    <div class="calendar-table-wrap">
+      <table class="calendar-table">
+        <thead>
+          <tr><th>№ Домика</th><% days.forEach((day) => { %><th><%= day %></th><% }) %></tr>
+        </thead>
+        <tbody>
+          <% houses.forEach((house) => { %>
+            <tr>
+              <th><%= house.id %></th>
+              <% days.forEach((day) => {
+                const date = monthParam + '-' + String(day).padStart(2, '0');
+                const booking = bookings.find((item) => item.house_id === house.id && item.start_date <= date && item.end_date >= date);
+              %>
+                <td class="<%= booking ? 'busy' : '' %>"><%= booking && new Date(booking.start_date).toISOString().slice(0,10) === date ? booking.guest_name.slice(0, 8) : '' %></td>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

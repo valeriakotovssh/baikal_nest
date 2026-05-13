@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main class="page">
+    <div class="breadcrumbs">Главная / Домики / <%= house.title %></div>
+    <h1><%= house.title %></h1>
+    <p class="muted"><%= house.capacity_min %>-<%= house.capacity_max %> гостя · <%= house.subtitle %> · <%= house.area %> м²</p>
+    <section class="house-detail">
+      <div>
+        <div class="gallery">
+          <img src="<%= house.image %>" alt="<%= house.image_alt %>">
+          <img src="/img/about-us-second.png" alt="Интерьер домика">
+        </div>
+        <p class="house-description"><%= house.description %></p>
+        <div class="feature-list">
+          <%
+            const featureIcons = ['wifi', 'terrace', 'kitchen', 'heat', 'pets'];
+            const featureTexts = ['Высокоскоростной WiFi', 'Личная терраса', 'Полная кухня', 'Система отопления', 'Можно с питомцами'];
+          %>
+          <% featureTexts.forEach((feature, index) => { %>
+            <span><i><%- include('partials/icons', { name: featureIcons[index] }) %></i><%= feature %></span>
+          <% }) %>
+        </div>
+      </div>
+      <form class="booking-card" action="/bookings" method="post">
+        <input type="hidden" name="house_id" value="<%= house.id %>">
+        <h2>от <%= house.price.toLocaleString('ru-RU') %> ₽ <small>/ ночь</small></h2>
+        <label>Ваше имя<input name="guest_name" value="<%= currentUser ? currentUser.name : '' %>" required></label>
+        <label>Телефон<input name="phone" value="<%= currentUser ? currentUser.phone : '' %>" required></label>
+        <label>Email<input type="email" name="email" value="<%= currentUser ? currentUser.email : '' %>"></label>
+        <div class="two-fields">
+          <label>Заезд<input type="date" name="start_date" required></label>
+          <label>Выезд<input type="date" name="end_date" required></label>
+        </div>
+        <label>Гости<input type="number" min="1" max="<%= house.capacity_max %>" name="guests" value="2" required></label>
+        <label>Комментарий<textarea name="message" placeholder="Особые пожелания"></textarea></label>
+        <button class="primary-button" type="submit">Забронировать</button>
+        <a class="outline-button" href="#contact">Связаться</a>
+        <p class="small-note">Вы пока ничего не оплачиваете</p>
+      </form>
+    </section>
+    <%- include('partials/contact-form', { source: 'house' }) %>
+    <%- include('partials/map') %>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

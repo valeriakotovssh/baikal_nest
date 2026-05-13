@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main class="login-page">
+    <section class="login-card">
+      <h1>Вход в аккаунт</h1>
+
+      <% if (error === 'login') { %>
+        <p class="alert">Проверьте email и пароль.</p>
+      <% } %>
+      <% if (error === 'not_guest') { %>
+        <p class="alert">Этот аккаунт администратора. Нажмите «Вход для администраторов».</p>
+      <% } %>
+      <% if (error === 'not_admin') { %>
+        <p class="alert">Этот аккаунт гостя. Используйте обычный вход для гостей.</p>
+      <% } %>
+      <% if (error === 'exists') { %>
+        <p class="alert">Такой email уже зарегистрирован.</p>
+      <% } %>
+
+      <div class="login-switch">
+        <button class="active" type="button" data-login-tab="guest">Вход для гостей</button>
+        <button type="button" data-login-tab="admin">Вход для администраторов</button>
+      </div>
+
+      <form action="/login" method="post" data-login-form="guest">
+        <input type="hidden" name="role" value="user">
+        <label>Email<input type="email" name="email" placeholder="alex.p@example.com" required></label>
+        <label>Пароль<input type="password" name="password" placeholder="••••••••" required></label>
+        <button class="primary-button" type="submit">Войти как гость</button>
+        <button class="outline-button full" type="button" data-toggle-register>Создать аккаунт</button>
+      </form>
+
+      <form class="hidden" action="/login" method="post" data-login-form="admin">
+        <input type="hidden" name="role" value="admin">
+        <label>Email администратора<input type="email" name="email" placeholder="admin@baikalnest.ru" required></label>
+        <label>Пароль<input type="password" name="password" placeholder="••••••••" required></label>
+        <button class="primary-button" type="submit">Войти как администратор</button>
+      </form>
+
+      <form class="register-form hidden" action="/register" method="post" data-register-form>
+        <h2>Регистрация</h2>
+        <label>Имя<input name="name" required></label>
+        <label>Email<input type="email" name="email" required></label>
+        <label>Телефон<input name="phone"></label>
+        <label>Пароль<input type="password" name="password" required></label>
+        <button class="primary-button" type="submit">Создать аккаунт</button>
+      </form>
+
+      <p class="small-note">Демо: admin@baikalnest.ru / admin123 или alex.p@example.com / user123</p>
+    </section>
+  </main>
+  <%- include('partials/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="page">
+    <div class="account-head">
+      <h1>Мои бронирования</h1>
+      <div class="tabs">
+        <a class="<%= tab === 'active' ? 'active' : '' %>" href="/account?tab=active">Активные (<%= activeCount %>)</a>
+        <a class="<%= tab === 'past' ? 'active' : '' %>" href="/account?tab=past">Прошедшие (<%= pastCount %>)</a>
+      </div>
+    </div>
+    <section class="account-layout">
+      <div class="booking-list">
+        <% bookings.forEach((booking) => { %>
+          <article class="account-booking">
+            <img src="<%= booking.image %>" alt="<%= booking.title %>">
+            <div>
+              <div class="booking-title-row">
+                <h2><%= booking.title %></h2>
+                <span class="status status_<%= booking.status %>"><%= statusLabel(booking.status) %></span>
+              </div>
+              <p><%= formatDate(booking.start_date) %>-<%= formatDate(booking.end_date) %> · <%= booking.guests %> гостя</p>
+              <hr>
+              <span class="muted">Итоговая стоимость</span>
+              <b class="price"><%= booking.total_price.toLocaleString('ru-RU') %> ₽</b>
+              <div class="button-row"><a class="outline-button" href="/contacts">Связаться</a><a class="primary-button small" href="/houses/<%= booking.slug %>">Детали</a></div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+      <aside class="account-side">
+        <form class="side-card" action="/account/profile" method="post">
+          <h2>Профиль</h2>
+          <label>Имя<input name="name" value="<%= currentUser.name %>"></label>
+          <label>Почта<input value="<%= currentUser.email %>" disabled></label>
+          <label>Телефон<input name="phone" value="<%= currentUser.phone || '' %>"></label>
+          <button class="outline-button full" type="submit">Сохранить</button>
+        </form>
+        <div class="side-card">
+          <h2>Мои отзывы</h2>
+          <% reviews.slice(0, 2).forEach((review) => { %>
+            <div class="mini-review"><div class="stars">★★★★★</div><p><%= review.text %></p><span><%= statusLabel(review.status) %></span></div>
+          <% }) %>
+          <a class="ghost-button" href="/reviews#review-form">Все отзывы →</a>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main class="page">
+    <div class="breadcrumbs">Главная / Домики</div>
+    <h1>Выберите подходящий вариант для отдыха</h1>
+    <div class="catalog-layout">
+      <form class="filters" method="get">
+        <label>Количество гостей</label>
+        <div class="chip-grid">
+          <% ['1-2', '2-4', '4-6', '6+'].forEach((item) => { %>
+            <label class="chip"><input type="radio" name="guests" value="<%= item %>" <%= filters.guests === item ? 'checked' : '' %>><span><%= item %></span></label>
+          <% }) %>
+        </div>
+        <label>Тип размещения</label>
+        <select name="type">
+          <option value="">Все</option>
+          <option value="water" <%= filters.type === 'water' ? 'selected' : '' %>>У воды</option>
+          <option value="forest" <%= filters.type === 'forest' ? 'selected' : '' %>>В лесу</option>
+          <option value="panoramic" <%= filters.type === 'panoramic' ? 'selected' : '' %>>Панорамный</option>
+          <option value="family" <%= filters.type === 'family' ? 'selected' : '' %>>Для семьи</option>
+          <option value="sauna" <%= filters.type === 'sauna' ? 'selected' : '' %>>С сауной</option>
+        </select>
+        <label>Сортировка</label>
+        <select name="sort">
+          <option value="popular" <%= filters.sort === 'popular' ? 'selected' : '' %>>По популярности</option>
+          <option value="price" <%= filters.sort === 'price' ? 'selected' : '' %>>По цене</option>
+          <option value="capacity" <%= filters.sort === 'capacity' ? 'selected' : '' %>>По вместимости</option>
+        </select>
+        <button class="primary-button" type="submit">Применить</button>
+      </form>
+      <div class="catalog-grid">
+        <% houses.forEach((house) => { %>
+          <%- include('partials/house-card', { house }) %>
+        <% }) %>
+      </div>
+    </div>
+    <%- include('partials/contact-form', { source: 'catalog' }) %>
+    <%- include('partials/map') %>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

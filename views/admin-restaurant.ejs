@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: true }) %>
+  <main class="admin-page">
+    <nav class="admin-nav">
+      <a href="/admin">Дашборд</a>
+      <a href="/admin/bookings">Бронирования</a>
+      <a href="/admin/restaurant">Ресторан</a>
+      <a href="/admin/reviews">Отзывы</a>
+      <a href="/admin/calendar">Календарь</a>
+    </nav>
+    <h1>Брони столиков</h1>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Имя</th>
+            <th>Телефон</th>
+            <th>Дата</th>
+            <th>Время</th>
+            <th>Гости</th>
+            <th>Скидка</th>
+            <th>Пожелания</th>
+            <th>Статус</th>
+            <th>Действие</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% bookings.forEach((booking) => { %>
+            <tr>
+              <td><%= booking.id %></td>
+              <td><%= booking.guest_name %></td>
+              <td><%= booking.phone %></td>
+              <td><%= formatDate(booking.booking_date) %></td>
+              <td><%= booking.booking_time %></td>
+              <td><%= booking.guests %></td>
+              <td><%= booking.discount %>%</td>
+              <td class="table-note"><%= booking.comment || '—' %></td>
+              <td><%= statusLabel(booking.status) %></td>
+              <td class="table-actions">
+                <form action="/admin/restaurant/<%= booking.id %>/status" method="post">
+                  <input type="date" name="booking_date" value="<%= booking.booking_date %>">
+                  <input type="time" name="booking_time" value="<%= booking.booking_time %>">
+                  <select name="status">
+                    <option value="new" <%= booking.status === 'new' ? 'selected' : '' %>>Ожидает подтверждения</option>
+                    <option value="confirmed" <%= booking.status === 'confirmed' ? 'selected' : '' %>>Подтверждена</option>
+                    <option value="seated" <%= booking.status === 'seated' ? 'selected' : '' %>>Гость пришел</option>
+                    <option value="cancelled" <%= booking.status === 'cancelled' ? 'selected' : '' %>>Отменена</option>
+                  </select>
+                  <button class="outline-button" type="submit">Сохранить</button>
+                </form>
+                <form action="/admin/restaurant/<%= booking.id %>/delete" method="post">
+                  <button class="dark-button" type="submit">Удалить</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

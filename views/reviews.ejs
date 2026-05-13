@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | Baikal Nest</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', { admin: false }) %>
+  <main class="page">
+    <div class="section-head">
+      <div>
+        <div class="breadcrumbs">Главная / Отзывы</div>
+        <h1>Отзывы о Baikal Nest</h1>
+        <p class="muted">Здесь вы можете прочитать реальные впечатления о проживании в наших домиках на Байкале.</p>
+      </div>
+      <a class="primary-button" href="#review-form">Оставить отзыв</a>
+    </div>
+    <div class="reviews-row wide">
+      <% reviews.forEach((review) => { %>
+        <article class="review-card large">
+          <p><%= review.text %></p>
+          <div class="stars">★★★★★</div>
+          <b><%= review.author %><%= review.city ? ', ' + review.city : '' %></b>
+        </article>
+      <% }) %>
+    </div>
+    <section class="contact-section" id="review-form">
+      <div class="contact-copy">
+        <h2>Оставьте отзыв</h2>
+        <p>Нам важно ваше мнение — расскажите о своем опыте проживания, это поможет другим гостям сделать выбор.</p>
+      </div>
+      <form class="soft-form" action="/reviews" method="post">
+        <label>Имя<input name="author" value="<%= currentUser ? currentUser.name : '' %>" required></label>
+        <label>Город<input name="city" placeholder="Иркутск"></label>
+        <label>Отзыв<textarea name="text" placeholder="Поделитесь своими впечатлениями" required></textarea></label>
+        <label>Ваша оценка<input type="number" name="rating" min="1" max="5" value="5"></label>
+        <button class="primary-button" type="submit">Отправить</button>
+      </form>
+    </section>
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>
