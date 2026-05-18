@@ -32,12 +32,21 @@
       <form class="booking-card" action="/bookings" method="post">
         <input type="hidden" name="house_id" value="<%= house.id %>">
         <h2>от <%= house.price.toLocaleString('ru-RU') %> ₽ <small>/ ночь</small></h2>
+        <% if (error === 'dates_busy') { %>
+          <p class="alert">На выбранные даты по этому домику уже есть заявка. Выберите свободный период.</p>
+        <% } %>
+        <% if (error === 'form') { %>
+          <p class="alert">Проверьте даты: заезд должен быть не раньше сегодняшнего дня, а выезд минимум на следующий день.</p>
+        <% } %>
         <label>Ваше имя<input name="guest_name" value="<%= currentUser ? currentUser.name : '' %>" required></label>
         <label>Телефон<input name="phone" value="<%= currentUser ? currentUser.phone : '' %>" required></label>
         <label>Email<input type="email" name="email" value="<%= currentUser ? currentUser.email : '' %>"></label>
         <div class="two-fields">
           <label>Заезд<input type="date" name="start_date" required></label>
           <label>Выезд<input type="date" name="end_date" required></label>
+        </div>
+        <div class="availability-picker" data-availability-calendar>
+          <script type="application/json" data-availability-data><%- JSON.stringify(typeof availabilityBookings !== 'undefined' ? availabilityBookings : []) %></script>
         </div>
         <label>Гости<input type="number" min="1" max="<%= house.capacity_max %>" name="guests" value="2" required></label>
         <label>Комментарий<textarea name="message" placeholder="Особые пожелания"></textarea></label>
@@ -50,5 +59,6 @@
     <%- include('partials/map') %>
   </main>
   <%- include('partials/footer') %>
+  <script src="/js/main.js"></script>
 </body>
 </html>

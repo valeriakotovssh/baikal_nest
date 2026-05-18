@@ -7,6 +7,26 @@ const {
   getAsync,
   allAsync
 } = require('./db');
+const crypto = require('crypto');
+const { promisify } = require('util');
+
+const scryptAsync = promisify(crypto.scrypt);
+const PASSWORD_PREFIX = 'scrypt';
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = await scryptAsync(password, salt, 64);
+  return [PASSWORD_PREFIX, salt, derivedKey.toString('hex')].join(':');
+}
+
+async function verifyPassword(password, storedHash) {
+  if (!storedHash) return false;
+  const [prefix, salt, hash] = storedHash.split(':');
+  if (prefix !== PASSWORD_PREFIX || !salt || !hash) return false;
+  const derivedKey = await scryptAsync(password, salt, 64);
+  const saved = Buffer.from(hash, 'hex');
+  return saved.length === derivedKey.length && crypto.timingSafeEqual(saved, derivedKey);
+}
 
 const app = express();
 const cache = new NodeCache({ stdTTL: 30 });
@@ -58,6 +78,12 @@ function nightsBetween(startDate, endDate) {
   return Number.isFinite(diff) && diff > 0 ? diff : 1;
 }
 
+function todayString() {
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+}
+
 function formatDate(date) {
   return new Date(date).toLocaleDateString('ru-RU');
 }
@@ -66,15 +92,36 @@ function statusLabel(status) {
   const labels = {
     new: 'Ожидает подтверждения',
     confirmed: 'Подтверждена',
-    paid: 'Оплачено',
     cancelled: 'Отменена',
-    completed: 'Завершена',
     pending: 'На модерации',
     approved: 'Одобрен',
     rejected: 'Отклонен',
     seated: 'Гость пришел'
   };
   return labels[status] || status;
+}
+
+function isOccupiedBookingStatus(status) {
+  return ['new', 'confirmed'].includes(status);
+}
+
+async function findBookingConflicts(houseId, startDate, endDate, excludeId = null) {
+  const params = [houseId, endDate, startDate];
+  let excludeClause = '';
+  if (excludeId) {
+    excludeClause = 'AND id != ?';
+    params.splice(1, 0, excludeId);
+  }
+  return allAsync(
+    `SELECT id, start_date, end_date, status
+     FROM bookings
+     WHERE house_id = ?
+       ${excludeClause}
+       AND status IN ('new', 'confirmed')
+       AND start_date < ?
+       AND end_date > ?`,
+    params
+  );
 }
 
 function monthString(year, monthIndex) {
@@ -140,10 +187,29 @@ app.get('/catalog', async (req, res) => {
 app.get('/houses/:slug', async (req, res) => {
   const house = await getAsync('SELECT * FROM houses WHERE slug = ?', [req.params.slug]);
   if (!house) return res.status(404).render('404', { title: 'Домик не найден' });
+  const availabilityBookings = await allAsync(
+    `SELECT id, start_date, end_date, status
+     FROM bookings
+     WHERE house_id = ? AND status IN ('new', 'confirmed') AND end_date >= ?
+     ORDER BY start_date`,
+    [house.id, todayString()]
+  );
   res.render('house', {
     title: house.title,
-    house: { ...house, featuresList: parseFeatures(house.features) }
+    house: { ...house, featuresList: parseFeatures(house.features) },
+    availabilityBookings
   });
+});
+
+app.get('/api/houses/:id/availability', async (req, res) => {
+  const availabilityBookings = await allAsync(
+    `SELECT id, start_date, end_date, status
+     FROM bookings
+     WHERE house_id = ? AND status IN ('new', 'confirmed') AND end_date >= ?
+     ORDER BY start_date`,
+    [req.params.id, todayString()]
+  );
+  res.json(availabilityBookings);
 });
 
 app.get('/reviews', async (req, res) => {
@@ -165,7 +231,8 @@ app.get('/restaurant', (req, res) => {
 
 app.post('/restaurant/bookings', async (req, res) => {
   const { guest_name, phone, booking_date, booking_time, guests, hotel_guest, comment = '' } = req.body;
-  if (!guest_name || !phone || !booking_date || !booking_time || !guests) {
+  const guestsCount = Number(guests);
+  if (!guest_name || !phone || !booking_date || !booking_time || !guestsCount || guestsCount <= 0) {
     return res.redirect('/restaurant?error=form');
   }
   const isHotelGuest = hotel_guest === 'on' ? 1 : 0;
@@ -173,7 +240,7 @@ app.post('/restaurant/bookings', async (req, res) => {
     `INSERT INTO restaurant_bookings
      (user_id, guest_name, phone, booking_date, booking_time, guests, hotel_guest, discount, status, comment)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.session.user?.id || null, guest_name, phone, booking_date, booking_time, Number(guests), isHotelGuest, isHotelGuest ? 10 : 0, 'new', comment]
+    [req.session.user?.id || null, guest_name, phone, booking_date, booking_time, guestsCount, isHotelGuest, isHotelGuest ? 10 : 0, 'new', comment]
   );
   res.redirect('/restaurant?success=restaurant');
 });
@@ -190,10 +257,11 @@ app.post('/contact', async (req, res) => {
 
 app.post('/reviews', async (req, res) => {
   const { author, city = '', rating = 5, text } = req.body;
-  if (!author || !text) return res.redirect('/reviews?error=form');
+  const ratingValue = Number(rating);
+  if (!author || !text || ratingValue < 1 || ratingValue > 5) return res.redirect('/reviews?error=form');
   await runAsync(
     'INSERT INTO reviews (user_id, author, city, rating, text, status) VALUES (?, ?, ?, ?, ?, ?)',
-    [req.session.user?.id || null, author, city, Math.min(Number(rating) || 5, 5), text, 'pending']
+    [req.session.user?.id || null, author, city, ratingValue, text, 'pending']
   );
   cache.del('pendingReviews');
   res.redirect('/reviews?success=review');
@@ -201,19 +269,25 @@ app.post('/reviews', async (req, res) => {
 
 app.post('/bookings', async (req, res) => {
   const { house_id, guest_name, phone, email = '', start_date, end_date, guests, message = '' } = req.body;
-  if (!house_id || !guest_name || !phone || !start_date || !end_date || !guests) {
+  const bookingEmail = (email || req.session.user?.email || '').trim().toLowerCase();
+  const guestCount = Number(guests);
+  const today = todayString();
+  if (!house_id || !guest_name || !phone || !start_date || !end_date || !guestCount || guestCount <= 0 || start_date < today || start_date >= end_date) {
     return res.redirect(req.get('referer') || '/catalog?error=form');
   }
 
   const house = await getAsync('SELECT * FROM houses WHERE id = ?', [house_id]);
   if (!house) return res.redirect('/catalog?error=house');
+  if (guestCount > house.capacity_max) return res.redirect(req.get('referer') || '/catalog?error=capacity');
+  const conflicts = await findBookingConflicts(house_id, start_date, end_date);
+  if (conflicts.length > 0) return res.redirect(req.get('referer') || '/catalog?error=dates_busy');
   const total = house.price * nightsBetween(start_date, end_date);
 
   await runAsync(
     `INSERT INTO bookings
      (user_id, house_id, guest_name, phone, email, start_date, end_date, guests, status, total_price, message)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.session.user?.id || null, house_id, guest_name, phone, email, start_date, end_date, Number(guests), 'new', total, message]
+    [req.session.user?.id || null, house_id, guest_name, phone, bookingEmail, start_date, end_date, guestCount, 'new', total, message]
   );
   cache.del('bookings');
   res.redirect('/account?success=booking');
@@ -225,8 +299,8 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { email, password, role } = req.body;
-  const user = await getAsync('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
-  if (!user) return res.redirect('/login?error=login');
+  const user = await getAsync('SELECT * FROM users WHERE email = ?', [email]);
+  if (!user || !(await verifyPassword(password, user.password_hash))) return res.redirect('/login?error=login');
   if (role === 'admin' && user.role !== 'admin') return res.redirect('/login?error=not_admin');
   if (role === 'user' && user.role === 'admin') return res.redirect('/login?error=not_guest');
   req.session.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
@@ -237,11 +311,17 @@ app.post('/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
   if (!name || !email || !password) return res.redirect('/login?error=form');
   try {
+    const normalizedEmail = email.trim().toLowerCase();
+    const passwordHash = await hashPassword(password);
     const result = await runAsync(
-      'INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)',
-      [name, email, phone, password, 'user']
+      'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+      [name, normalizedEmail, phone, passwordHash, 'user']
     );
-    req.session.user = { id: result.lastID, name, email, phone, role: 'user' };
+    await runAsync(
+      'UPDATE bookings SET user_id = ? WHERE user_id IS NULL AND LOWER(email) = LOWER(?)',
+      [result.lastID, normalizedEmail]
+    );
+    req.session.user = { id: result.lastID, name, email: normalizedEmail, phone, role: 'user' };
     res.redirect('/account');
   } catch (err) {
     res.redirect('/login?error=exists');
@@ -256,13 +336,18 @@ app.get('/account', requireAuth, async (req, res) => {
   if (req.session.user.role === 'admin') return res.redirect('/admin');
   const tab = req.query.tab === 'past' ? 'past' : 'active';
   const today = new Date().toISOString().slice(0, 10);
+  await runAsync(
+    'UPDATE bookings SET user_id = ? WHERE user_id IS NULL AND LOWER(email) = LOWER(?)',
+    [req.session.user.id, req.session.user.email]
+  );
   const bookings = await allAsync(
     `SELECT bookings.*, houses.title, houses.slug, houses.image
      FROM bookings
      JOIN houses ON houses.id = bookings.house_id
      WHERE bookings.user_id = ?
+        OR (bookings.user_id IS NULL AND LOWER(bookings.email) = LOWER(?))
      ORDER BY bookings.start_date DESC`,
-    [req.session.user.id]
+    [req.session.user.id, req.session.user.email]
   );
   const activeBookings = bookings.filter((booking) => booking.end_date >= today);
   const pastBookings = bookings.filter((booking) => booking.end_date < today);
@@ -343,12 +428,25 @@ app.post('/admin/restaurant/:id/delete', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/bookings/:id/status', requireAdmin, async (req, res) => {
+  const booking = await getAsync('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+  if (!booking) return res.redirect('/admin/bookings?error=not_found');
+
+  const startDate = req.body.start_date;
+  const endDate = req.body.end_date;
+  const status = req.body.status;
+  if (!startDate || !endDate || startDate >= endDate) return res.redirect('/admin/bookings?error=dates');
+
+  if (isOccupiedBookingStatus(status)) {
+    const conflicts = await findBookingConflicts(booking.house_id, startDate, endDate, req.params.id);
+    if (conflicts.length > 0) return res.redirect('/admin/bookings?error=dates_busy');
+  }
+
   await runAsync(
     'UPDATE bookings SET start_date = ?, end_date = ?, status = ? WHERE id = ?',
-    [req.body.start_date, req.body.end_date, req.body.status, req.params.id]
+    [startDate, endDate, status, req.params.id]
   );
   cache.del('bookings');
-  res.redirect('/admin/bookings');
+  res.redirect('/admin/bookings?success=booking');
 });
 
 app.post('/admin/bookings/:id/delete', requireAdmin, async (req, res) => {
@@ -381,7 +479,8 @@ app.get('/admin/calendar', requireAdmin, async (req, res) => {
   const bookings = await allAsync(
     `SELECT bookings.*, houses.title
      FROM bookings JOIN houses ON houses.id = bookings.house_id
-     WHERE bookings.end_date >= ? AND bookings.start_date <= ?
+     WHERE bookings.status IN ('new', 'confirmed')
+       AND bookings.end_date >= ? AND bookings.start_date <= ?
      ORDER BY bookings.start_date`,
     [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)]
   );
@@ -390,6 +489,8 @@ app.get('/admin/calendar', requireAdmin, async (req, res) => {
     houses,
     bookings,
     days,
+    formatDate,
+    statusLabel,
     monthParam,
     monthTitle: start.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
     prevMonth,

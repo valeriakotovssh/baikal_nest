@@ -30,9 +30,38 @@
               <th><%= house.id %></th>
               <% days.forEach((day) => {
                 const date = monthParam + '-' + String(day).padStart(2, '0');
-                const booking = bookings.find((item) => item.house_id === house.id && item.start_date <= date && item.end_date >= date);
+                const dayBookings = bookings.filter((item) => item.house_id === house.id && item.start_date <= date && item.end_date > date);
+                const booking = dayBookings[0];
+                const isBookingStart = booking && booking.start_date === date;
+                const isVisibleBookingStart = booking && (isBookingStart || day === 1);
+                const nextDate = monthParam + '-' + String(day + 1).padStart(2, '0');
+                const isBookingEnd = booking && booking.end_date === nextDate;
+                const visibleBookingDays = booking ? Math.max(1, Math.min(
+                  Math.ceil((new Date(`${booking.end_date}T00:00:00`) - new Date(`${date}T00:00:00`)) / 86400000),
+                  days.length - day + 1
+                )) : 1;
+                const formatCalendarDate = (value) => new Date(value).toLocaleDateString('ru-RU');
+                const calendarStatusLabels = {
+                  new: 'Ожидает подтверждения',
+                  confirmed: 'Подтверждена',
+                  cancelled: 'Отменена',
+                };
               %>
-                <td class="<%= booking ? 'busy' : '' %>"><%= booking && new Date(booking.start_date).toISOString().slice(0,10) === date ? booking.guest_name.slice(0, 8) : '' %></td>
+                <td class="<%= booking ? `busy calendar-status_${booking.status} ${isVisibleBookingStart ? 'booking-start' : 'booking-middle'} ${isBookingEnd ? 'booking-end' : ''}` : 'free' %>">
+                  <% if (booking && isVisibleBookingStart) { %>
+                    <a class="calendar-booking" style="--booking-days: <%= visibleBookingDays %>" href="/admin/bookings#booking-<%= booking.id %>" title="<%= booking.guest_name %>, <%= formatCalendarDate(booking.start_date) %>-<%= formatCalendarDate(booking.end_date) %>, <%= calendarStatusLabels[booking.status] || booking.status %>">
+                      <em>Бронь №<%= booking.id %></em>
+                      <strong><%= booking.guest_name %></strong>
+                      <span><%= booking.title %></span>
+                      <span><%= formatCalendarDate(booking.start_date) %>-<%= formatCalendarDate(booking.end_date) %></span>
+                      <span><%= calendarStatusLabels[booking.status] || booking.status %></span>
+                      <% if (dayBookings.length > 1) { %>
+                        <em>+<%= dayBookings.length - 1 %></em>
+                      <% } %>
+                      <small>Подробнее</small>
+                    </a>
+                  <% } %>
+                </td>
               <% }) %>
             </tr>
           <% }) %>

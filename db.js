@@ -1,8 +1,18 @@
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const crypto = require('crypto');
+const { promisify } = require('util');
 
 const DB_PATH = path.join(__dirname, 'data', 'database.sqlite');
 const db = new sqlite3.Database(DB_PATH);
+const scryptAsync = promisify(crypto.scrypt);
+const PASSWORD_PREFIX = 'scrypt';
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = await scryptAsync(password, salt, 64);
+  return [PASSWORD_PREFIX, salt, derivedKey.toString('hex')].join(':');
+}
 
 function runAsync(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -38,11 +48,45 @@ async function initDb() {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       phone TEXT,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'user',
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  const userColumns = await allAsync('PRAGMA table_info(users)');
+  const userColumnNames = userColumns.map((column) => column.name);
+  if (!userColumnNames.includes('password_hash')) {
+    await runAsync('ALTER TABLE users ADD COLUMN password_hash TEXT');
+  }
+  if (userColumnNames.includes('password')) {
+    const legacyUsers = await allAsync('SELECT id, password, password_hash FROM users');
+    for (const user of legacyUsers) {
+      if (!user.password_hash && user.password) {
+        await runAsync('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(user.password), user.id]);
+      }
+    }
+
+    await runAsync('PRAGMA foreign_keys = OFF');
+    await runAsync(`
+      CREATE TABLE users_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await runAsync(`
+      INSERT INTO users_new (id, name, email, phone, password_hash, role, created_at)
+      SELECT id, name, email, phone, password_hash, role, created_at FROM users
+    `);
+    await runAsync('DROP TABLE users');
+    await runAsync('ALTER TABLE users_new RENAME TO users');
+    await runAsync('PRAGMA foreign_keys = ON');
+  }
 
   await runAsync(`
     CREATE TABLE IF NOT EXISTS houses (
@@ -51,9 +95,9 @@ async function initDb() {
       title TEXT NOT NULL,
       subtitle TEXT,
       description TEXT NOT NULL,
-      price INTEGER NOT NULL,
-      capacity_min INTEGER NOT NULL,
-      capacity_max INTEGER NOT NULL,
+      price INTEGER NOT NULL CHECK (price >= 0),
+      capacity_min INTEGER NOT NULL CHECK (capacity_min > 0),
+      capacity_max INTEGER NOT NULL CHECK (capacity_max > 0),
       area INTEGER,
       type TEXT,
       features TEXT,
@@ -74,8 +118,8 @@ async function initDb() {
       email TEXT,
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL,
-      guests INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'new',
+      guests INTEGER NOT NULL CHECK (guests > 0),
+      status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'confirmed', 'cancelled')),
       total_price INTEGER,
       message TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -90,9 +134,9 @@ async function initDb() {
       user_id INTEGER,
       author TEXT NOT NULL,
       city TEXT,
-      rating INTEGER NOT NULL DEFAULT 5,
+      rating INTEGER NOT NULL DEFAULT 5 CHECK (rating BETWEEN 1 AND 5),
       text TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id)
     )
@@ -118,10 +162,10 @@ async function initDb() {
       phone TEXT NOT NULL,
       booking_date TEXT NOT NULL,
       booking_time TEXT NOT NULL,
-      guests INTEGER NOT NULL,
-      hotel_guest INTEGER DEFAULT 0,
-      discount INTEGER DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'new',
+      guests INTEGER NOT NULL CHECK (guests > 0),
+      hotel_guest INTEGER DEFAULT 0 CHECK (hotel_guest IN (0, 1)),
+      discount INTEGER DEFAULT 0 CHECK (discount >= 0),
+      status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'confirmed', 'cancelled', 'completed', 'seated')),
       comment TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id)
@@ -131,19 +175,19 @@ async function initDb() {
   const usersCount = await getAsync('SELECT COUNT(*) as count FROM users');
   if (usersCount.count === 0) {
     await runAsync(
-      `INSERT INTO users (name, email, phone, password, role) VALUES
+      `INSERT INTO users (name, email, phone, password_hash, role) VALUES
        (?, ?, ?, ?, ?),
        (?, ?, ?, ?, ?)`,
       [
         'Дмитрий В.',
         'admin@baikalnest.ru',
         '+7 999 123-45-67',
-        'admin123',
+        await hashPassword('admin123'),
         'admin',
         'Александр Петров',
         'alex.p@example.com',
         '+7 900 123-45-67',
-        'user123',
+        await hashPassword('user123'),
         'user'
       ]
     );
@@ -210,7 +254,7 @@ async function initDb() {
       `INSERT INTO bookings
        (user_id, house_id, guest_name, phone, email, start_date, end_date, guests, status, total_price, message)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [2, 2, 'Александр Петров', '+7 900 123-45-67', 'alex.p@example.com', '2026-03-10', '2026-03-12', 2, 'completed', 10800, 'Прошлая поездка']
+      [2, 2, 'Александр Петров', '+7 900 123-45-67', 'alex.p@example.com', '2026-03-10', '2026-03-12', 2, 'confirmed', 10800, 'Прошлая поездка']
     );
   }
 

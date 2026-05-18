@@ -11,8 +11,15 @@
   <main class="admin-page">
     <nav class="admin-nav"><a href="/admin">Дашборд</a><a href="/admin/bookings">Бронирования</a><a href="/admin/restaurant">Ресторан</a><a href="/admin/reviews">Отзывы</a><a href="/admin/calendar">Календарь</a></nav>
     <h1>Бронирования</h1>
+    <% if (error === 'dates_busy') { %>
+      <p class="alert">Этот домик уже занят на выбранные даты. Нельзя подтвердить две брони на один домик с пересекающимися датами.</p>
+    <% } %>
+    <% if (error === 'dates') { %>
+      <p class="alert">Проверьте даты: дата выезда должна быть позже даты заезда.</p>
+    <% } %>
     <%- include('partials/admin-bookings-table', { bookings, formatDate, statusLabel }) %>
   </main>
   <%- include('partials/footer') %>
+  <script src="/js/main.js"></script>
 </body>
 </html>
